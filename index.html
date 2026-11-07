@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyage — Premium Trip Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                    animation: {
+                        'float-slow': 'float 15s ease-in-out infinite',
+                        'float-medium': 'float 10s ease-in-out infinite',
+                        'float-fast': 'float 12s ease-in-out infinite reverse',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; color: #1e293b; }
+
+        /* Orbs Sfondo (Leggeri) */
+        .ambient-orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.4; z-index: 0; pointer-events: none; }
+        .orb-blue { background: radial-gradient(circle, #60a5fa 0%, transparent 70%); width: 700px; height: 700px; top: -150px; left: -100px; }
+        .orb-emerald { background: radial-gradient(circle, #34d399 0%, transparent 70%); width: 600px; height: 600px; bottom: -100px; right: 5%; }
+        .orb-purple { background: radial-gradient(circle, #a78bfa 0%, transparent 70%); width: 800px; height: 800px; top: 30%; left: 40%; }
+
+        /* Card Bianche Professionali */
+        .sys-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+            border-radius: 1.5rem; position: relative; z-index: 10;
+        }
+        .sys-input {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a; border-radius: 0.75rem; transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .sys-input:focus {
+            border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); outline: none;
+        }
+
+        /* Checkbox Custom */
+        .sys-checkbox {
+            appearance: none; width: 1.1rem; height: 1.1rem; border: 1px solid #cbd5e1;
+            border-radius: 0.25rem; background-color: white; display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .sys-checkbox:checked { background-color: #6366f1; border-color: #6366f1; }
+        .sys-checkbox:checked::after { content: '✓'; color: white; font-size: 0.75rem; font-weight: bold; }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .timeline-line::before {
+            content: ''; position: absolute; left: 1.25rem; top: 2.5rem; bottom: -1rem;
+            width: 2px; background: #e2e8f0; z-index: 0;
+        }
+        .group:last-child .timeline-line::before { display: none; }
+
+        @media print {
+            body { background: white !important; }
+            .ambient-orb, .no-print { display: none !important; }
+            .sys-card { background: white !important; border: none !important; box-shadow: none !important; margin-bottom: 20px; }
+            input, select { border: none !important; }
+            /* In stampa mostriamo tutto, ignorando le tab nascoste */
+            #view-itinerary, #view-memory { display: block !important; }
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col relative overflow-x-hidden pb-12">
+
+    <div class="ambient-orb orb-blue animate-float-slow"></div>
+    <div class="ambient-orb orb-emerald animate-float-medium"></div>
+    <div class="ambient-orb orb-purple animate-float-fast"></div>
+
+    <div class="relative z-10 w-full max-w-[1200px] mx-auto px-4 sm:px-6 py-8 flex flex-col gap-6">
+        
+        <!-- HEADER PREMIUM IOS (LIQUID GLASS) -->
+        <header class="relative p-6 sm:p-8 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center rounded-[2rem] border border-white/80 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,1)] backdrop-blur-2xl bg-white/40 overflow-hidden print:shadow-none print:border-none print:bg-transparent">
+            
+            <!-- Riflesso vetro interno (nascosto in stampa) -->
+            <div class="absolute inset-0 bg-gradient-to-br from-white/80 via-white/10 to-transparent pointer-events-none no-print"></div>
+            
+            <div class="flex-1 space-y-3 w-full relative z-10">
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-md shadow-indigo-500/20 no-print">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/90 animate-pulse"></span> Voyage
+                    </span>
+                    <div class="flex items-center gap-2 text-sm text-slate-700 bg-white/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white shadow-sm print:bg-transparent print:border-none print:shadow-none print:p-0">
+                        <i data-lucide="calendar" class="w-4 h-4 text-indigo-500 no-print"></i>
+                        <input type="date" id="trip-start-date" class="bg-transparent border-none font-bold focus:outline-none text-sm cursor-pointer">
+                        <span class="text-slate-400 font-black">—</span>
+                        <input type="date" id="trip-end-date" class="bg-transparent border-none font-bold focus:outline-none text-sm cursor-pointer">
+                    </div>
+                </div>
+                
+                <!-- Titolo con Effetto Gradiente -->
+                <input type="text" id="trip-title" placeholder="Nome Viaggio..." 
+                    class="w-full text-5xl md:text-6xl font-black tracking-tighter bg-transparent border-none focus:outline-none p-0 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-700 placeholder-slate-400/50 transition-all drop-shadow-sm print:text-black">
+            </div>
+
+            <div class="flex flex-col gap-4 shrink-0 w-full md:w-auto relative z-10">
+                
+                <!-- Widget Stats iOS Style -->
+                <div class="flex gap-3">
+                    <div class="flex-1 bg-white/70 backdrop-blur-lg border border-white shadow-[0_4px_15px_rgba(0,0,0,0.03)] px-5 py-3 rounded-2xl flex flex-col justify-center items-center min-w-[110px] print:border-slate-200 print:shadow-none">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Giorni</span>
+                        <span id="stat-days" class="text-2xl font-black text-slate-800">0</span>
+                    </div>
+                    <div class="flex-1 bg-white/70 backdrop-blur-lg border border-white shadow-[0_4px_15px_rgba(0,0,0,0.03)] px-5 py-3 rounded-2xl flex flex-col justify-center items-center min-w-[110px] print:border-slate-200 print:shadow-none">
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Spesa</span>
+                        <span id="stat-spent" class="text-2xl font-black text-emerald-600">€0</span>
+                    </div>
+                </div>
+                
+                <!-- Bottoni Glossy -->
+                <div class="flex gap-2 no-print">
+                    <button onclick="window.print()" class="flex-1 py-2.5 px-3 rounded-xl bg-white/80 hover:bg-white backdrop-blur border border-white text-slate-600 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <i data-lucide="printer" class="w-4 h-4 text-slate-400"></i> PDF
+                    </button>
+                    <button onclick="exportToWord()" class="flex-1 py-2.5 px-3 rounded-xl bg-indigo-50/80 hover:bg-indigo-100 backdrop-blur border border-indigo-100 text-indigo-600 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Word
+                    </button>
+                    <!-- Bottone App con Glow iOS -->
+                    <button onclick="exportApp()" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-[0_8px_20px_-4px_rgba(99,102,241,0.5)] border border-indigo-400/50">
+                        <i data-lucide="download" class="w-4 h-4 text-indigo-100"></i> App
+                    </button>
+                </div>
+            </div>
+        </header>
+
+       <!-- SISTEMA A SCHEDE (TABS) SUPER EVIDENTE -->
+        <div class="flex p-2 bg-slate-200/80 rounded-2xl no-print shadow-inner w-full max-w-xl mx-auto mt-2 mb-4">
+            <button onclick="switchTab('itinerary')" id="tab-itinerary" class="flex-1 py-3.5 text-sm font-black text-indigo-700 bg-white rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                <i data-lucide="route" class="w-5 h-5"></i> ITINERARIO
+            </button>
+            <button onclick="switchTab('memory')" id="tab-memory" class="flex-1 py-3.5 text-sm font-black text-slate-500 hover:text-slate-800 rounded-xl transition-all flex items-center justify-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i> MEMORY (Budget & Note)
+            </button>
+        </div>
+        <!-- VISTA 1: ITINERARIO -->
+        <div id="view-itinerary" class="block">
+            <section class="sys-card p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-black text-slate-800 tracking-tight">Timeline Viaggio</h2>
+                    <span id="timeline-count-badge" class="px-3 py-1 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 uppercase tracking-widest">0 tappe</span>
+                </div>
+
+                <form id="form-itinerary" class="bg-slate-50 border border-slate-200 rounded-xl p-5 mb-8 no-print shadow-sm">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-3">
+                        <div class="md:col-span-3">
+                            <select id="itin-icon" class="sys-input w-full px-3 py-2.5 text-sm font-medium">
+                                <option value="map-pin">📍 Tappa</option>
+                                <option value="plane">✈️ Volo</option>
+                                <option value="train">🚆 Treno / Bus</option>
+                                <option value="car">🚗 Auto</option>
+                                <option value="bed">🛏️ Alloggio</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-4">
+                            <input type="datetime-local" id="itin-date" required class="sys-input w-full px-3 py-2.5 text-sm font-medium">
+                        </div>
+                        <div class="md:col-span-5">
+                            <input type="text" id="itin-title" placeholder="Titolo (es. Arrivo a Edimburgo)" required class="sys-input w-full px-3 py-2.5 text-sm font-bold text-slate-900">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                        <div class="md:col-span-5">
+                            <input type="text" id="itin-location" placeholder="Indirizzo esatto" class="sys-input w-full px-3 py-2.5 text-sm">
+                        </div>
+                        <div class="md:col-span-5">
+                            <input type="text" id="itin-notes" placeholder="Note (Terminale, Booking ID...)" class="sys-input w-full px-3 py-2.5 text-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="submit" class="w-full h-full min-h-[42px] rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all text-sm flex items-center justify-center gap-1.5 shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Salva
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div id="itinerary-timeline" class="space-y-4 relative"></div>
+            </section>
+        </div>
+
+        <!-- VISTA 2: MEMORY (Esplora, Budget, Valigia, Note) -->
+        <div id="view-memory" class="hidden flex flex-col gap-6">
+            
+            <!-- ESPLORA E GUSTA -->
+            <section class="sys-card p-6 sm:p-8">
+                <div class="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                    <div class="p-2.5 rounded-xl bg-rose-50 text-rose-500 border border-rose-100">
+                        <i data-lucide="map" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Esplora & Gusta</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-0.5">Archivio luoghi e ristoranti da non perdere</p>
+                    </div>
+                </div>
+
+                <form id="form-places" class="flex flex-col sm:flex-row gap-3 mb-6 no-print">
+                    <select id="place-type" class="sys-input px-3 py-2.5 text-sm font-bold w-full sm:w-48 text-rose-600">
+                        <option value="🏛️ Visita">🏛️ Da Visitare</option>
+                        <option value="🍽️ Cibo">🍽️ Ristorante / Pub</option>
+                    </select>
+                    <input type="text" id="place-name" placeholder="Nome del luogo o locale..." required class="sys-input flex-1 px-4 py-2.5 text-sm font-bold text-slate-900">
+                    <input type="text" id="place-notes" placeholder="Dettagli (es. piatto tipico o ticket)" class="sys-input flex-1 px-4 py-2.5 text-sm">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold transition-all text-sm shadow-sm">
+                        Aggiungi
+                    </button>
+                </form>
+
+                <div id="places-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </section>
+
+            <!-- GRIGLIA 3 COLONNE (Budget, Valigia, Note) -->
+            <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- BUDGET -->
+                <div class="sys-card p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Budget</h3>
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1 rounded">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Max €</span>
+                            <input type="number" id="budget-cap" placeholder="0" class="bg-transparent w-12 text-right text-xs font-bold text-slate-800 focus:outline-none no-print p-0">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5 no-print">
+                        <div class="flex justify-between items-end mb-1.5">
+                            <p id="spent-total-large" class="text-2xl font-black text-slate-800">€0</p>
+                            <span id="budget-status-text" class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 mb-1 overflow-hidden">
+                            <div id="budget-progress-bar" class="h-full bg-emerald-500 transition-all duration-500 w-0"></div>
+                        </div>
+                    </div>
+
+                    <form id="form-expense" class="flex flex-col gap-2 mb-4 no-print">
+                        <input type="text" id="exp-desc" placeholder="Spesa..." required class="sys-input px-3 py-2 text-xs">
+                        <div class="flex gap-2">
+                            <input type="number" id="exp-amount" placeholder="€" step="0.01" min="0.01" required class="sys-input w-20 px-3 py-2 text-xs font-bold">
+                            <select id="exp-category" class="sys-input flex-1 px-2 py-2 text-xs">
+                                <option>Alloggio</option><option>Trasporti</option><option>Cibo</option><option>Attività</option><option>Altro</option>
+                            </select>
+                            <button type="submit" class="px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </form>
+                    <div id="expenses-list" class="flex-1 space-y-1.5 overflow-y-auto max-h-[300px] pr-1"></div>
+                </div>
+
+                <!-- VALIGIA -->
+                <div class="sys-card p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="briefcase" class="w-4 h-4 text-fuchsia-500"></i>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Valigia</h3>
+                        </div>
+                        <span id="packing-progress-badge" class="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">0/0</span>
+                    </div>
+                    <form id="form-packing" class="flex gap-2 mb-4 no-print">
+                        <input type="text" id="packing-input" placeholder="Oggetto..." required class="sys-input flex-1 px-3 py-2 text-xs">
+                        <button type="submit" class="px-3 rounded-lg bg-fuchsia-500 hover:bg-fuchsia-600 text-white"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                    </form>
+                    <div id="packing-list" class="flex-1 space-y-1.5 overflow-y-auto max-h-[300px] pr-1"></div>
+                </div>
+
+                <!-- NOTE / TASK -->
+                <div class="sys-card p-5 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="list-todo" class="w-4 h-4 text-amber-500"></i>
+                            <h3 class="text-xs font-black text-slate-800 uppercase tracking-widest">Note Varie</h3>
+                        </div>
+                    </div>
+                    <form id="form-task" class="flex gap-2 mb-4 no-print">
+                        <input type="text" id="task-input" placeholder="Promemoria..." required class="sys-input flex-1 px-3 py-2 text-xs">
+                        <button type="submit" class="px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                    </form>
+                    <div id="tasks-list" class="flex-1 space-y-1.5 overflow-y-auto max-h-[300px] pr-1"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- 1. IMPORTA FIREBASE (Versione Compatibile per Vanilla JS) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- LOGICA JAVASCRIPT -->
+    <script>
+        // 2. INIZIALIZZA FIREBASE (Con i dati dal tuo screenshot)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA02FSw9XQRZutypNrahgI9NWRjI8PPyU4",
+            authDomain: "itinerario-72f40.firebaseapp.com",
+            projectId: "itinerario-72f40",
+            storageBucket: "itinerario-72f40.firebasestorage.app",
+            messagingSenderId: "781125250034",
+            appId: "1:781125250034:web:1cf16f7da4cb559a3c996b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 3. ABILITA CACHE OFFLINE (Bypass per non consumare la quota gratuita di Firebase)
+        db.enablePersistence().catch(function(err) {
+            console.warn("Persistenza offline non abilitata:", err.code);
+        });
+
+        // Documento specifico del viaggio in cloud
+        const tripRef = db.collection("trips").doc("scozia_2026");
+
+        const STORAGE_KEY = 'voyage_planner_v8'; 
+        const OLD_KEYS = ['voyage_planner_v7', 'voyage_planner_v6', 'voyage_planner_v5', 'voyage_planner_v4', 'voyage_planner_v3'];
+
+        let appState = {
+            title: '', startDate: '', endDate: '', budgetCap: '',
+            itinerary: [], expenses: [], packing: [], tasks: [], places: []
+        };
+
+        let collapsedDays = new Set();
+        let editingItinId = null;
+        
+        // FUNZIONE TAB
+        function switchTab(tab) {
+            const itin = document.getElementById('view-itinerary');
+            const mem = document.getElementById('view-memory');
+            const btnItin = document.getElementById('tab-itinerary');
+            const btnMem = document.getElementById('tab-memory');
+
+            const activeClass = "flex-1 py-3.5 text-sm font-black text-indigo-700 bg-white rounded-xl shadow transition-all flex items-center justify-center gap-2";
+            const inactiveClass = "flex-1 py-3.5 text-sm font-black text-slate-500 hover:text-slate-800 rounded-xl transition-all flex items-center justify-center gap-2";
+
+            if (tab === 'itinerary') {
+                itin.classList.remove('hidden'); itin.classList.add('block');
+                mem.classList.remove('flex'); mem.classList.add('hidden');
+                btnItin.className = activeClass; btnMem.className = inactiveClass;
+            } else {
+                mem.classList.remove('hidden'); mem.classList.add('flex');
+                itin.classList.remove('block'); itin.classList.add('hidden');
+                btnMem.className = activeClass; btnItin.className = inactiveClass;
+            }
+        }
+
+        // SINCRONIZZAZIONE FIREBASE
+        async function syncStorage() {
+            try {
+                await tripRef.set(appState, { merge: true });
+                updateOverviewStats();
+            } catch (e) {
+                console.error("Errore salvataggio Firebase", e);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); // Fallback offline puro
+                updateOverviewStats();
+            }
+        }
+
+        function initApp() {
+            if (window.PORTABLE_STATE) {
+                appState = window.PORTABLE_STATE;
+                syncStorage(); delete window.PORTABLE_STATE;
+            } 
+            
+            // 1. Estrae i vecchi dati locali (Scozia) per migrarli su Cloud
+            let bestRaw = null; let maxLen = 0;
+            let raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) { bestRaw = raw; maxLen = raw.length; }
+
+            for(let key of OLD_KEYS) {
+                let oldRaw = localStorage.getItem(key);
+                if (oldRaw && oldRaw.length > maxLen) { maxLen = oldRaw.length; bestRaw = oldRaw; }
+            }
+
+            let localDataExists = false;
+            if (bestRaw && maxLen > 50) {
+                try { 
+                    const saved = JSON.parse(bestRaw);
+                    if (saved) {
+                        if (saved.title) appState.title = saved.title;
+                        if (saved.startDate) appState.startDate = saved.startDate;
+                        if (saved.endDate) appState.endDate = saved.endDate;
+                        if (saved.budgetCap) appState.budgetCap = saved.budgetCap;
+                        if (Array.isArray(saved.itinerary) && saved.itinerary.length > 0) appState.itinerary = saved.itinerary;
+                        if (Array.isArray(saved.expenses) && saved.expenses.length > 0) appState.expenses = saved.expenses;
+                        if (Array.isArray(saved.packing) && saved.packing.length > 0) appState.packing = saved.packing;
+                        if (Array.isArray(saved.tasks) && saved.tasks.length > 0) appState.tasks = saved.tasks;
+                        if (Array.isArray(saved.places) && saved.places.length > 0) appState.places = saved.places;
+                        localDataExists = true;
+                    }
+                } catch(e) { console.error("Errore caricamento locale", e); }
+            }
+
+            // 2. Ascolta Firebase in tempo reale (Cache-first)
+            tripRef.onSnapshot((docSnap) => {
+                if (docSnap.exists) {
+                    const saved = docSnap.data();
+                    if (saved.title) appState.title = saved.title;
+                    if (saved.startDate) appState.startDate = saved.startDate;
+                    if (saved.endDate) appState.endDate = saved.endDate;
+                    if (saved.budgetCap) appState.budgetCap = saved.budgetCap;
+                    if (Array.isArray(saved.itinerary)) appState.itinerary = saved.itinerary;
+                    if (Array.isArray(saved.expenses)) appState.expenses = saved.expenses;
+                    if (Array.isArray(saved.packing)) appState.packing = saved.packing;
+                    if (Array.isArray(saved.tasks)) appState.tasks = saved.tasks;
+                    if (Array.isArray(saved.places)) appState.places = saved.places;
+                    
+                    updateUIInputs();
+                    renderAll();
+                } else if (localDataExists) {
+                    // Se Firebase è vuoto ma abbiamo la Scozia in locale, la spariamo sul cloud
+                    syncStorage();
+                    updateUIInputs();
+                    renderAll();
+                } else {
+                    updateUIInputs();
+                    renderAll();
+                }
+            });
+
+            ['trip-title', 'trip-start-date', 'trip-end-date', 'budget-cap'].forEach(id => {
+                document.getElementById(id).addEventListener('input', e => {
+                    const key = id.replace('trip-', '').replace('-date', 'Date').replace(/-([a-z])/g, g => g[1].toUpperCase());
+                    appState[key] = e.target.value; 
+                    syncStorage();
+                    if(id === 'budget-cap') renderBudget();
+                });
+            });
+        }
+
+        function updateUIInputs() {
+            document.getElementById('trip-title').value = appState.title || '';
+            document.getElementById('trip-start-date').value = appState.startDate || '';
+            document.getElementById('trip-end-date').value = appState.endDate || '';
+            document.getElementById('budget-cap').value = appState.budgetCap || '';
+        }
+
+        function renderAll() {
+            renderItinerary(); renderPlaces(); renderBudget(); renderPacking(); renderTasks();
+            updateOverviewStats(); lucide.createIcons();
+        }
+
+        function updateOverviewStats() {
+            const statDays = document.getElementById('stat-days');
+            if (appState.startDate && appState.endDate) {
+                const diff = new Date(appState.endDate) - new Date(appState.startDate);
+                statDays.innerText = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
+            } else { statDays.innerText = '-'; }
+
+            const totalSpent = appState.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            document.getElementById('stat-spent').innerText = `€${Math.round(totalSpent)}`;
+            document.getElementById('timeline-count-badge').innerText = `${appState.itinerary.length} tappe`;
+        }
+
+        /* --- ITINERARY --- */
+        document.getElementById('form-itinerary').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.querySelector('#form-itinerary button[type="submit"]');
+
+            if (editingItinId) {
+                const index = appState.itinerary.findIndex(i => i.id === editingItinId);
+                if (index !== -1) { appState.itinerary[index] = { ...appState.itinerary[index], icon: document.getElementById('itin-icon').value, datetime: document.getElementById('itin-date').value, title: document.getElementById('itin-title').value.trim(), location: document.getElementById('itin-location').value.trim(), notes: document.getElementById('itin-notes').value.trim() }; }
+                editingItinId = null; 
+                btn.innerHTML = '<i data-lucide="plus" class="w-4 h-4"></i> Salva';
+                btn.className = 'w-full h-full min-h-[42px] rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all text-sm flex items-center justify-center gap-1.5 shadow-sm';
+            } else {
+                appState.itinerary.push({ id: 'itin_' + Date.now(), icon: document.getElementById('itin-icon').value, datetime: document.getElementById('itin-date').value, title: document.getElementById('itin-title').value.trim(), location: document.getElementById('itin-location').value.trim(), notes: document.getElementById('itin-notes').value.trim(), done: false });
+            }
+            appState.itinerary.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+            syncStorage(); e.target.reset(); renderItinerary();
+        });
+
+        function toggleItin(id) { const item = appState.itinerary.find(i => i.id === id); if (item) { item.done = !item.done; syncStorage(); renderItinerary(); } }
+        function deleteItin(id) { appState.itinerary = appState.itinerary.filter(i => i.id !== id); syncStorage(); renderItinerary(); }
+        
+        function editItin(id) {
+            const item = appState.itinerary.find(i => i.id === id); if (!item) return;
+            document.getElementById('itin-icon').value = item.icon; document.getElementById('itin-date').value = item.datetime; document.getElementById('itin-title').value = item.title; document.getElementById('itin-location').value = item.location || ''; document.getElementById('itin-notes').value = item.notes || '';
+            editingItinId = id; 
+            const btn = document.querySelector('#form-itinerary button[type="submit"]');
+            btn.innerHTML = '<i data-lucide="pencil" class="w-4 h-4"></i> Aggiorna';
+            btn.className = 'w-full h-full min-h-[42px] rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold transition-all text-sm flex items-center justify-center gap-1.5 shadow-sm';
+            lucide.createIcons(); document.getElementById('form-itinerary').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function toggleDay(dateLabel) {
+            if (collapsedDays.has(dateLabel)) collapsedDays.delete(dateLabel); else collapsedDays.add(dateLabel); 
+            renderItinerary();
+        }
+
+        function renderItinerary() {
+            const container = document.getElementById('itinerary-timeline');
+            if (appState.itinerary.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 py-6 text-sm no-print">Nessuna tappa. Inizia a pianificare!</p>`; return;
+            }
+
+            const grouped = {};
+            appState.itinerary.forEach((item) => {
+                const d = new Date(item.datetime); const dateLabel = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+                if (!grouped[dateLabel]) grouped[dateLabel] = []; grouped[dateLabel].push(item);
+            });
+
+            let html = '';
+            for (const [dateLabel, items] of Object.entries(grouped)) {
+                const isCollapsed = collapsedDays.has(dateLabel); 
+                html += `
+                    <div class="mb-2">
+                        <button type="button" onclick="toggleDay('${dateLabel}')" class="w-full flex items-center justify-between py-3 border-b border-slate-100 group focus:outline-none no-print">
+                            <h4 class="text-indigo-600 font-black uppercase text-xs tracking-widest">${dateLabel}</h4>
+                            <div class="text-slate-400 group-hover:text-indigo-600 transition-colors"><i data-lucide="${isCollapsed ? 'chevron-down' : 'chevron-up'}" class="w-4 h-4"></i></div>
+                        </button>
+                        <h4 class="hidden print:block text-black font-bold uppercase text-xs tracking-widest mt-6 mb-2 border-b-2 border-black pb-1">${dateLabel}</h4>
+                        
+                        <div class="pt-4 pb-2 space-y-4 ${isCollapsed ? 'hidden' : 'block'} no-print">
+                `;
+
+                items.forEach((item) => {
+                    const timeLabel = new Date(item.datetime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    html += `
+                        <div class="flex gap-4 relative group timeline-line pb-2 ${item.done ? 'opacity-50' : ''}">
+                            <div class="flex flex-col items-center z-10 pt-1">
+                                <button onclick="toggleItin('${item.id}')" class="w-10 h-10 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all">
+                                    <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="flex-1 bg-white border border-slate-100 p-4 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">${timeLabel}</span>
+                                        <h5 class="text-base font-bold text-slate-800 mt-1.5 leading-tight ${item.done ? 'line-through text-slate-400' : ''}">${escapeHtml(item.title)}</h5>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onclick="editItin('${item.id}')" class="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded transition-colors" title="Modifica"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                                        <button onclick="deleteItin('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors" title="Elimina"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                    </div>
+                                </div>
+                                ${item.location ? `<p class="text-xs text-slate-500 font-medium mt-2 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-indigo-400"></i> ${escapeHtml(item.location)}</p>` : ''}
+                                ${item.notes ? `<p class="text-sm font-semibold text-slate-500 mt-2">${escapeHtml(item.notes)}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div> 
+                        <table class="hidden print:table w-full text-left border-collapse text-xs mb-4"><tbody>
+                `;
+                items.forEach((item) => {
+                    const timeLabel = new Date(item.datetime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    html += `<tr class="border-b border-gray-200"><td class="py-1.5 pr-2 font-mono text-[11px] text-gray-900 w-16">${timeLabel}</td><td class="py-1.5 pr-2 text-xs text-gray-900 ${item.done ? 'line-through text-gray-400' : 'font-semibold'} w-1/3">${escapeHtml(item.title)}</td><td class="py-1.5 pr-2 text-[11px] text-gray-700 w-1/4">${item.location ? escapeHtml(item.location) : '-'}</td><td class="py-1.5 pr-2 text-[11px] text-gray-600 italic">${item.notes ? escapeHtml(item.notes) : '-'}</td></tr>`;
+                });
+                html += `</tbody></table></div>`;
+            }
+            container.innerHTML = html; lucide.createIcons(); 
+        }
+
+        /* --- PLACES --- */
+        document.getElementById('form-places').addEventListener('submit', (e) => {
+            e.preventDefault(); appState.places.push({ id: 'plc_' + Date.now(), type: document.getElementById('place-type').value, name: document.getElementById('place-name').value.trim(), notes: document.getElementById('place-notes').value.trim() }); syncStorage(); e.target.reset(); renderPlaces();
+        });
+        function deletePlace(id) { appState.places = appState.places.filter(x => x.id !== id); syncStorage(); renderPlaces(); }
+        function renderPlaces() {
+            const list = document.getElementById('places-list');
+            let html = '';
+            appState.places.forEach(p => {
+                const isFood = p.type.includes('Cibo');
+                html += `
+                <div class="bg-white border border-slate-200 p-4 rounded-xl flex flex-col gap-1 relative group hover:border-slate-300 hover:shadow-sm transition-all">
+                    <div class="flex justify-between items-start">
+                        <span class="text-[10px] font-black uppercase tracking-widest ${isFood ? 'text-amber-500' : 'text-indigo-500'}">${p.type}</span>
+                        <button onclick="deletePlace('${p.id}')" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 no-print transition-opacity"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm mt-1">${escapeHtml(p.name)}</h4>
+                    ${p.notes ? `<p class="text-[11px] text-slate-500 italic mt-1">${escapeHtml(p.notes)}</p>` : ''}
+                </div>`;
+            });
+            
+            if(appState.places.length > 0) {
+                html += `
+                <table class="hidden print:table w-full text-left border-collapse text-xs mt-4 col-span-full">
+                    <tbody>${appState.places.map(p => `<tr class="border-b border-gray-200"><td class="py-1 w-32 font-bold text-gray-700">${p.type}</td><td class="py-1 font-bold text-gray-900">${escapeHtml(p.name)}</td><td class="py-1 text-gray-600 italic">${escapeHtml(p.notes)}</td></tr>`).join('')}</tbody>
+                </table>`;
+            }
+            list.innerHTML = html; lucide.createIcons();
+        }
+
+        /* --- TASKS --- */
+        document.getElementById('form-task').addEventListener('submit', (e) => { e.preventDefault(); appState.tasks.push({ id: 'tsk_' + Date.now(), text: document.getElementById('task-input').value.trim(), done: false }); syncStorage(); e.target.reset(); renderTasks(); });
+        function toggleTask(id) { const t = appState.tasks.find(x => x.id === id); if(t) { t.done = !t.done; syncStorage(); renderTasks(); } }
+        function deleteTask(id) { appState.tasks = appState.tasks.filter(x => x.id !== id); syncStorage(); renderTasks(); }
+        function renderTasks() {
+            const list = document.getElementById('tasks-list');
+            let html = `<div class="space-y-1.5 no-print">`;
+            html += appState.tasks.map(t => `<div class="flex items-start justify-between py-1.5 group border-b border-slate-50 last:border-0"><label class="flex items-start gap-2.5 cursor-pointer flex-1"><input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${t.id}')" class="sys-checkbox mt-0.5"><span class="text-xs font-medium ${t.done ? 'line-through text-slate-400' : 'text-slate-700'}">${escapeHtml(t.text)}</span></label><button onclick="deleteTask('${t.id}')" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 no-print ml-2"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></div>`).join('');
+            html += `</div>`;
+            if (appState.tasks.length > 0) { html += `<table class="hidden print:table w-full text-left border-collapse text-xs mt-2"><tbody>${appState.tasks.map(t => `<tr><td class="py-0.5 w-6">[${t.done ? 'X' : ' '}]</td><td class="py-0.5 ${t.done ? 'line-through text-gray-400' : ''}">${escapeHtml(t.text)}</td></tr>`).join('')}</tbody></table>`; }
+            list.innerHTML = html; lucide.createIcons();
+        }
+
+        /* --- BUDGET --- */
+        document.getElementById('form-expense').addEventListener('submit', (e) => { e.preventDefault(); appState.expenses.push({ id: 'exp_' + Date.now(), desc: document.getElementById('exp-desc').value.trim(), category: document.getElementById('exp-category').value, amount: parseFloat(document.getElementById('exp-amount').value) || 0 }); syncStorage(); e.target.reset(); renderBudget(); });
+        function deleteExp(id) { appState.expenses = appState.expenses.filter(x => x.id !== id); syncStorage(); renderBudget(); }
+        function renderBudget() {
+            const cap = parseFloat(appState.budgetCap) || 0;
+            const spent = appState.expenses.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+            document.getElementById('spent-total-large').innerText = `€${spent.toLocaleString('it-IT', {minimumFractionDigits:2})}`;
+            const bar = document.getElementById('budget-progress-bar'); const statText = document.getElementById('budget-status-text');
+            if(cap > 0) {
+                const pct = Math.min((spent/cap)*100, 100); bar.style.width = `${pct}%`;
+                if(spent > cap) { bar.className = "h-full bg-rose-500 transition-all duration-500 w-full"; statText.className = "text-[10px] font-bold text-rose-500 uppercase tracking-wider"; statText.innerText = "Sforato!"; } 
+                else { bar.className = "h-full bg-emerald-500 transition-all duration-500"; statText.className = "text-[10px] font-bold text-emerald-500 uppercase tracking-wider"; statText.innerText = `${pct.toFixed(0)}%`; }
+            } else { bar.style.width = spent > 0 ? '100%' : '0%'; bar.className = "h-full bg-slate-200 transition-all duration-500"; statText.innerText = ""; }
+
+            let html = `<div class="space-y-1.5 no-print">`;
+            html += [...appState.expenses].reverse().map(e => `<div class="flex justify-between items-center py-2 border-b border-slate-50 last:border-0 group"><div><p class="text-xs font-bold text-slate-800">${escapeHtml(e.desc)}</p><span class="text-[9px] font-bold uppercase tracking-widest text-slate-400">${e.category}</span></div><div class="flex items-center gap-3"><span class="font-mono text-xs font-bold text-emerald-600">€${(parseFloat(e.amount) || 0).toLocaleString('it-IT', {minimumFractionDigits:2})}</span><button onclick="deleteExp('${e.id}')" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 no-print"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button></div></div>`).join('');
+            html += `</div>`;
+            if (appState.expenses.length > 0) { html += `<div class="hidden print:block mt-2"><p class="text-[11px] font-bold mb-1 uppercase border-b border-gray-400 pb-0.5">Spesa: €${spent.toLocaleString('it-IT', {minimumFractionDigits:2})} / €${cap > 0 ? cap : '-'}</p><table class="w-full text-left border-collapse text-xs"><tbody>${[...appState.expenses].reverse().map(e => `<tr><td class="py-0.5 w-2/3">${escapeHtml(e.desc)}</td><td class="py-0.5 text-[10px] text-gray-500">${e.category}</td><td class="py-0.5 text-right font-mono">€${(parseFloat(e.amount) || 0).toLocaleString('it-IT', {minimumFractionDigits:2})}</td></tr>`).join('')}</tbody></table></div>`; }
+            document.getElementById('expenses-list').innerHTML = html; lucide.createIcons();
+        }
+
+        /* --- PACKING --- */
+        document.getElementById('form-packing').addEventListener('submit', (e) => { e.preventDefault(); appState.packing.push({ id: 'pck_' + Date.now(), text: document.getElementById('packing-input').value.trim(), done: false }); syncStorage(); e.target.reset(); renderPacking(); });
+        function togglePack(id) { const p = appState.packing.find(x => x.id === id); if(p) { p.done = !p.done; syncStorage(); renderPacking(); } }
+        function deletePack(id) { appState.packing = appState.packing.filter(x => x.id !== id); syncStorage(); renderPacking(); }
+        function renderPacking() {
+            const tot = appState.packing.length; const done = appState.packing.filter(x => x.done).length;
+            document.getElementById('packing-progress-badge').innerText = `${done}/${tot}`;
+            let html = `<div class="space-y-1.5 no-print">`;
+            html += appState.packing.map(p => `<div class="flex items-start justify-between py-1.5 border-b border-slate-50 last:border-0 group"><label class="flex items-center gap-2.5 cursor-pointer flex-1"><input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePack('${p.id}')" class="sys-checkbox mt-0.5"><span class="text-xs font-medium ${p.done ? 'line-through text-slate-400' : 'text-slate-700'}">${escapeHtml(p.text)}</span></label><button onclick="deletePack('${p.id}')" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 no-print ml-2"><i data-lucide="x" class="w-3.5 h-3.5"></i></button></div>`).join('');
+            html += `</div>`;
+            if (appState.packing.length > 0) { html += `<table class="hidden print:table w-full text-left border-collapse text-xs mt-2"><tbody>${appState.packing.map(p => `<tr><td class="py-0.5 w-6">[${p.done ? 'X' : ' '}]</td><td class="py-0.5 ${p.done ? 'line-through text-gray-400' : ''}">${escapeHtml(p.text)}</td></tr>`).join('')}</tbody></table>`; }
+            document.getElementById('packing-list').innerHTML = html; lucide.createIcons();
+        }
+
+        /* --- EXPORT --- */
+        function exportToWord() {
+            const title = appState.title || 'Itinerario_Viaggio';
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML</title></head><body style='font-family: Arial, sans-serif;'>";
+            let content = `<h1>${title}</h1>`; if(appState.startDate) content += `<p>Date: ${appState.startDate} - ${appState.endDate}</p><hr>`;
+            content += `<h2>Esplora & Gusta</h2><ul>`; appState.places.forEach(p => content += `<li><strong>${p.type}:</strong> ${p.name} - <em>${p.notes}</em></li>`);
+            content += `</ul><hr><h2>Itinerario</h2><ul style="list-style-type:none; padding:0;">`; appState.itinerary.forEach(i => { const dt = new Date(i.datetime).toLocaleString('it-IT'); content += `<li style="margin-bottom:15px;"><strong>${dt} - ${i.title}</strong><br>Luogo: ${i.location || 'N/D'}<br>Note: ${i.notes || 'N/D'}</li>`; });
+            content += `</ul><hr><h2>Appunti / Task</h2><ul>`; appState.tasks.forEach(t => content += `<li>[${t.done?'X':' '}] ${t.text}</li>`);
+            content += `</ul><hr><h2>Spese / Budget</h2><p>Budget Totale: €${appState.budgetCap || 0}</p><ul>`; appState.expenses.forEach(e => content += `<li>${e.desc} (${e.category}): €${e.amount}</li>`);
+            content += `</ul><hr><h2>Valigia / Checklist</h2><ul>`; appState.packing.forEach(p => content += `<li>[${p.done?'X':' '}] ${p.text}</li>`); content += `</ul>`;
+            const footer = "</" + "body></" + "html>";
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(header + content + footer);
+            const a = document.createElement("a"); document.body.appendChild(a); a.href = source; a.download = `${title.replace(/\s+/g, '_')}.doc`; a.click(); document.body.removeChild(a);
+        }
+
+        function exportApp() {
+            const title = appState.title || 'Voyage_Planner';
+            const clone = document.documentElement.cloneNode(true);
+            const oldState = clone.querySelector('#portable-state'); if (oldState) oldState.remove();
+            const stateScript = document.createElement('script'); stateScript.id = 'portable-state'; stateScript.textContent = `window.PORTABLE_STATE = ${JSON.stringify(appState)};`; clone.querySelector('head').appendChild(stateScript);
+            const htmlContent = "<!DOCTYPE html>\n<html lang=\"it\" class=\"h-full bg-slate-50\">\n" + clone.innerHTML + "\n</html>";
+            const blob = new Blob([htmlContent], { type: "text/html" }); const url = URL.createObjectURL(blob);
+            const a = document.createElement("a"); a.href = url; a.download = `${title.replace(/\s+/g, '_')}_App.html`; a.click(); URL.revokeObjectURL(url);
+        }
+
+        function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+        // Registrazione Service Worker per PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Service Worker registrato con successo.', reg.scope))
+                    .catch(err => console.error('Errore registrazione PWA:', err));
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
