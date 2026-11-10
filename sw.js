@@ -12,7 +12,10 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-    // Serve il file dalla cache locale. Se non c'è, lo scarica da internet e lo salva in cache.
+    // 1. IGNORA LE CHIAMATE NON-GET (Come i POST di Firebase Firestore)
+    if (e.request.method !== 'GET') return;
+
+    // 2. Serve il file dalla cache locale. Se non c'è, lo scarica da internet e lo salva in cache.
     e.respondWith(
         caches.match(e.request).then((cachedResponse) => {
             return cachedResponse || fetch(e.request).then((fetchResponse) => {
